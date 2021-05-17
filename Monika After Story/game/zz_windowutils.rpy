@@ -154,6 +154,33 @@ init python in mas_windowutils:
         except Xlib.error.XError:
             return None
 
+    def __getWindowProcessName_Linux(window):
+        """
+        Gets the owning process name of the provided window object.
+
+        IN:
+            Xlib.display.Window to fetch owner PID property of.
+
+        OUT:
+            Name (name of executable file) of the owner process of the provided window
+            or None if there was an error while trying to fetch it.
+
+        ASSUMES:
+            OS is Linux (renpy.linux)
+        """
+        NET_WM_PID = __display.intern_atom("_NET_WM_PID")
+        _property = window.get_full_property(NET_WM_PID, Xlib.Xatom.CARDINAL)
+        if _property is None:
+            return None
+        try:
+            # *nix way of getting process metadata through /proc/PID.
+            pd = open("/proc/" + str(_property.value[0]) + "/comm", "r")
+            return pd.read().rstrip()  # Strip the trailing newline.
+        except OSError:  # /proc could be mounted to non-canonical location, inaccessible etc.
+            return None
+        finally:
+            pd.close()
+
     def __getMASWindowLinux():
         """
         Funtion to get the MAS window on Linux systems
